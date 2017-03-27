@@ -1,0 +1,11 @@
+videosources=(
+    'test/HotTubFriendClub'
+    'youtube'
+    'UCyLv2v335AgFE01wblfWecw' # Youtube Channel ID
+
+    'arma3/MahmoodTheCamelThief'
+    'youtube'
+    'UCOeXMCLA4l8u7lq9KyvJVFA'
+)
+
+download_directory=~/Videos

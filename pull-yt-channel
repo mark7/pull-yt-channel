@@ -1,0 +1,124 @@
+#!/bin/bash -x
+
+set -a videosources
+
+read-config-file() {
+    . ~/.pull-yt-channelrc
+}
+
+download_directory=~/Videos
+history_file=".pull-yt-channel-downloaded"
+
+dialog-config() {
+    local i
+    cat <<EOF
+--menu "Select a video source" 0 0 0 
+EOF
+    for ((i=0; $((i * 3)) < ${#videosources[@]}; i++)); do
+        echo "$i" "\"${videosources[$((i * 3))]}\""
+    done
+}
+
+get-playlist-url() {
+    local type="$1"
+    local username="$2"
+    case "$type" in
+        youtube)
+            # particular channel from a user
+            echo "https://www.youtube.com/channel/$username"
+            ;;
+        youtube-all)
+            # All videos from a user
+            echo "https://www.youtube.com/user/$username/videos"
+            ;;
+        *)
+            echo "Unknown type $1; exiting"
+            exit 1
+            ;;
+    esac
+}
+
+# Given a playlist URL, returns a set of per-video values appropriate
+# to the source type
+get-url-list() {
+    local type="$1"
+    local playlist_url="$2"
+
+    # output playlist items in reverse order
+    case "$type" in
+        youtube|youtube-all)
+            youtube-dl --no-color -j --yes-playlist --flat-playlist \
+                       "$playlist_url"|
+                jq -M '.id'|
+                sed "s/^\"//"|
+                sed "s/\"$//"|
+                tac
+            ;;
+    esac
+}
+
+download-video() {
+    local type="$1"
+    local id="$2"
+    case "$type" in
+        youtube|youtube-all)
+            youtube-dl --xattr-set-filesize \
+                       -o "%(upload_date)s-%(title)s-%(id)s.%(ext)s" \
+                       "https://www.youtube.com/watch?v=$id"
+            ;;
+    esac
+}
+
+
+download-playlist() {
+    local type="$1"
+    local playlist_url="$2"
+    local vid
+
+    for vid in $(get-url-list "$type" "$playlist_url"); do
+        touch "$history_file"
+        if grep -Fxq -- "$vid" "$history_file" ; then
+            echo "Already downloaded $vid; skipping"
+        else
+            local exit_code
+            download-video "$type" "$vid"
+            exit_code="$?"
+            if [[ $exit_code == 0 ]]; then
+                echo "$vid" >>$history_file
+            elif [[ $exit_code -ge 128 ]]; then
+                # Was probably killed -- go ahead and terminate
+                echo "Failed to download file with $exit_code -- terminating"
+                exit 1
+            else
+                # Some failure, possibly transient -- continue
+                continue
+            fi
+        fi
+    done
+}
+
+read-config-file
+
+# Need to swap stderr and stdout to get the user's choice without
+# interfering with visual output
+choice=$(dialog --file <(dialog-config) 3>&1 1>&2 2>&3 3>&-)
+result="$?"
+
+if [ "$result" -ne 0 ]; then
+    echo "Cancelled"
+    exit 0
+fi
+
+index=$((choice * 3))
+
+target_dir="$download_directory"/"${videosources[$index]}"
+
+mkdir -p -- "$target_dir"
+
+type=${videosources[$((index+1))]}
+
+playlist_url="$(get-playlist-url "$type" "${videosources[$((index+2))]}" )"
+
+pushd "$target_dir"
+
+download-playlist "$type" "$playlist_url"
