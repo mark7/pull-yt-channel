@@ -6,6 +6,10 @@ videosources=(
     'arma3/MahmoodTheCamelThief'
     'youtube'
     'UCOeXMCLA4l8u7lq9KyvJVFA'
+
+    'rv/nomadicfanatic'
+    'youtube-all'
+    'nomadicfanatic'
 )
 
 download_directory=~/Videos
