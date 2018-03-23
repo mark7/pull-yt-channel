@@ -7,7 +7,8 @@ read-config-file() {
 }
 
 download_directory=~/Videos
-history_file=".pull-yt-channel-downloaded"
+obsolete_history_file=".pull-yt-channel-downloaded"
+history_file=".pull-yt-channel-downloaded2"
 
 dialog-config() {
     local i
@@ -75,26 +76,14 @@ download-playlist() {
     local playlist_url="$2"
     local vid
 
-    for vid in $(get-url-list "$type" "$playlist_url"); do
-        touch "$history_file"
-        if grep -Fxq -- "$vid" "$history_file" ; then
-            echo "Already downloaded $vid; skipping"
-        else
-            local exit_code
-            download-video "$type" "$vid"
-            exit_code="$?"
-            if [[ $exit_code == 0 ]]; then
-                echo "$vid" >>$history_file
-            elif [[ $exit_code -ge 128 ]]; then
-                # Was probably killed -- go ahead and terminate
-                echo "Failed to download file with $exit_code -- terminating"
-                exit 1
-            else
-                # Some failure, possibly transient -- continue
-                continue
-            fi
-        fi
-    done
+    # Handle outdated history file format
+    if [ -f "$history_file" ]; then
+        sed "s/^/youtube /" "$obsolete_history_file" > "$history_file"
+        rm "$history_file"
+    fi
+
+    youtube-dl --playlist-reverse --download-archive "$history_file" \
+               "$playlist_url"
 }
 
 read-config-file
