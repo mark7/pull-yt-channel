@@ -79,7 +79,7 @@ download-playlist() {
     # Handle outdated history file format
     if [ -f "$history_file" ]; then
         sed "s/^/youtube /" "$obsolete_history_file" > "$history_file"
-        rm "$history_file"
+        rm "$obsolete_history_file"
     fi
 
     youtube-dl --playlist-reverse --download-archive "$history_file" \
