@@ -83,6 +83,8 @@ download-playlist() {
     fi
 
     youtube-dl --playlist-reverse --download-archive "$history_file" \
+               --xattr-set-filesize \
+               -o "%(upload_date)s-%(title)s-%(id)s.%(ext)s" \
                "$playlist_url"
 }
 
