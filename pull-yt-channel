@@ -77,7 +77,7 @@ download-playlist() {
     local vid
 
     # Handle outdated history file format
-    if [ -f "$history_file" ]; then
+    if [ -f "$obsolete_history_file" ]; then
         sed "s/^/youtube /" "$obsolete_history_file" > "$history_file"
         rm "$obsolete_history_file"
     fi
